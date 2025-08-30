@@ -6,6 +6,7 @@ from google import genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import pipeline
+import fitz
 
 # --- 1. CONFIGURAÇÃO INICIAL E CHAVE DE API ---
 load_dotenv()
@@ -24,18 +25,11 @@ CORS(app)
 
 MODEL_PATH = "./meu_classificador_de_emails"
 
-# --- 2. PREPARAÇÃO DA LISTA DE INTENÇÕES (A GRANDE MUDANÇA!) ---
-
+# --- 2. PREPARAÇÃO DA LISTA DE INTENÇÕES ---
 def load_known_intents():
-    """
-    Esta função carrega o CSV, filtra os e-mails produtivos
-    e cria uma lista de 'assuntos' (subjects) únicos que o Gemini usará como referência.
-    """
     try:
         df = pd.read_csv('dataset_emails_produtivo_improdutivo_15k.csv')
-        # Filtramos apenas os e-mails que são 'Produtivo'
         df_produtivo = df[df['label'] == 'Produtivo']
-        # Pegamos a coluna 'subject' e criamos uma lista com os valores únicos.
         intents = df_produtivo['subject'].unique().tolist()
         print(f">>> Lista de {len(intents)} intenções conhecidas carregada com sucesso!")
         return intents
@@ -43,16 +37,10 @@ def load_known_intents():
         print("ERRO: O arquivo 'dataset_emails_produtivo_improdutivo_15k.csv' não foi encontrado.")
         return []
 
-# Carregamos a lista de intenções uma vez quando o servidor inicia.
 known_intents = load_known_intents()
 
 # --- 3. CARREGAMENTO DOS MODELOS DE IA ---
 def load_classifier_model():
-    """Carrega nosso modelo BERT treinado."""
-    print("Carregando modelo classificador (BERT)...")
-    if not os.path.exists(MODEL_PATH):
-        print(f"ERRO: A pasta do modelo '{MODEL_PATH}' não foi encontrada.")
-        return None
     try:
         classifier_pipeline = pipeline("text-classification", model=MODEL_PATH, device=-1)
         print(">>> Modelo classificador carregado com sucesso!")
@@ -64,89 +52,122 @@ def load_classifier_model():
 classifier = load_classifier_model()
 generative_model = genarativeModel
 
-
-# --- 4. ENDPOINT DE ANÁLISE COM LÓGICA HÍBRIDA ---
+# --- 4. ENDPOINT DE ANÁLISE ---
 @app.route('/analyze', methods=['POST'])
 def analyze_email():
-    print(request.json)
-    exit()
-    if not all([classifier, generative_model, known_intents]):
+    if not all([classifier, genarativeModel, known_intents]):
         return jsonify({"error": "Um ou mais componentes de IA não estão carregados."}), 500
 
-    data = request.json
-    email_text = data.get('text')
-    if not email_text:
-        return jsonify({"error": "Nenhum texto de e-mail fornecido."}), 400
+    email_text = ""
 
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename != '':
+            filename = file.filename.lower()
+            
+            if filename.endswith('.pdf'):
+                try:
+                    with fitz.open(stream=file.read(), filetype="pdf") as pdf_document:
+                        for page in pdf_document:
+                            email_text += page.get_text()
+                except Exception as e:
+                    return jsonify({"error": f"Não foi possível ler o arquivo PDF. Pode estar corrompido. Erro: {str(e)}"}), 400
+
+            elif filename.endswith('.txt'):
+                try:
+                    email_text = file.read().decode('utf-8')
+                except Exception as e:
+                    return jsonify({"error": f"Não foi possível ler o arquivo de texto. Erro: {str(e)}"}), 400
+            else:
+                return jsonify({"error": "Formato de arquivo não suportado. Por favor, envie .txt ou .pdf."}), 400
+    
+    elif request.is_json and 'text' in request.json:
+        email_text = request.json.get('text')
+    
+    if not email_text.strip():
+        return jsonify({"error": "O documento parece estar vazio ou não contém texto extraível."}), 400
+    
     try:
-        # --- ETAPA 1: O PORTEIRO (BERT) FAZ A CLASSIFICAÇÃO INICIAL ---
         classification_result = classifier(email_text)[0]
         label_id = classification_result['label']
         category = "Produtivo" if label_id == 'LABEL_1' else "Improdutivo"
-        print(f"BERT classificou como: '{category}'")
 
-        # --- LÓGICA CONDICIONAL ---
         if category == "Improdutivo":
-            # Se for improdutivo, a lógica é simples.
-            print("Intenção: Improdutivo. Gerando resposta simples.")
-            prompt = f"O e-mail a seguir foi classificado como improdutivo (um elogio, convite, etc.):\n\n---\n{email_text}\n---\n\nGere uma resposta curta e cordial de agradecimento em português do Brasil."
-        
-        else: # Se a categoria for "Produtivo"...
-            # --- ETAPA 2: O DETETIVE (GEMINI) IDENTIFICA A INTENÇÃO ESPECÍFICA ---
-            print("Intenção: Produtivo. Pedindo ao Gemini para identificar a sub-categoria...")
-            
-            # Criamos um prompt para que o Gemini faça uma segunda classificação.
+            prompt = f"O e-mail a seguir foi classificado como improdutivo:\n\n---\n{email_text}\n---\n\nGere uma resposta curta e cordial de agradecimento em português do Brasil."
+        else:
             intent_prompt = f"""
             Analise o e-mail abaixo e diga a qual das seguintes intenções de negócio ele corresponde melhor:
             Lista de Intenções: {', '.join(known_intents)}
-
             --- E-MAIL ---
             {email_text}
             --- FIM DO E-MAIL ---
-
             Responda APENAS com o nome da intenção da lista. Se não corresponder a nenhuma, responda APENAS com a palavra "Outro".
             """
-            intent_response = genarativeModel.models.generate_content(model="gemini-1.5-flash",contents=intent_prompt)
+            intent_response = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=intent_prompt)
             detected_intent = intent_response.text.strip()
-            print(detected_intent)
-            print(f"Gemini detectou a intenção como: '{detected_intent}'")
 
-            # --- ETAPA 3: O REDATOR (GEMINI) GERA A RESPOSTA CONTEXTUAL ---
             if detected_intent != "Outro" and detected_intent in known_intents:
-                # Se encontramos uma intenção conhecida, o prompt é super específico.
                 prompt = f"""
-                Um e-mail foi recebido e classificado com a intenção específica de: **{detected_intent}**.
-                O conteúdo do e-mail é:\n\n---\n{email_text}\n---\n\nEscreva uma resposta profissional e direta em português do Brasil que confirme o recebimento desta solicitação específica.
+                O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como '{detected_intent}'. Escreva uma resposta profissional e direta em português do Brasil que confirme o recebimento desta solicitação específica.
                 """
             else:
-                # Se a intenção é nova ou desconhecida ("Outro"), usamos o fallback que você queria.
                 prompt = f"""
-                Um e-mail foi classificado como 'Produtivo', mas não se encaixa em nenhuma categoria de solicitação conhecida. O conteúdo é:\n\n---\n{email_text}\n---\n\nUse sua inteligência geral para escrever uma resposta profissional em português do Brasil, confirmando o recebimento e informando que o assunto será verificado pela equipe responsável.
+                O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como 'Produtivo', mas não se encaixa em uma categoria conhecida. Escreva uma resposta profissional em português do Brasil, confirmando o recebimento e informando que o assunto será verificado pela equipe responsável.
                 """
 
-        # Finalmente, geramos a resposta final com o prompt que foi escolhido.
-        final_response = genarativeModel.models.generate_content(model="gemini-2.5-flash",contents=prompt)
-        
-        
+        final_response = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         response_text = final_response.text
         
-        print(">>> Resposta final gerada com sucesso!")
         return jsonify({
-            "category": category, # A categoria principal do BERT
-            "response": response_text.strip()
+            "category": category,
+            "response": response_text.strip(),
+            "original_email": email_text
         })
 
     except Exception as e:
         print(f"Ocorreu um erro durante a análise: {e}")
         return jsonify({"error": f"Ocorreu um erro interno: {str(e)}"}), 500
 
-
-# O endpoint /refine continua o mesmo...
+# --- ENDPOINT DE REFINAMENTO (LÓGICA ALTERADA) ---
 @app.route('/refine', methods=['POST'])
 def refine_response():
-    # ... (código do refine) ...
-    pass
+    data = request.json
+    # Agora só precisamos do e-mail original e da resposta atual
+    if not data or not all(k in data for k in ['original_email', 'draft_response']):
+        return jsonify({"error": "Dados insuficientes para refinar a resposta."}), 400
 
+    original_email = data['original_email']
+    draft_response = data['draft_response']
+
+    # Este novo prompt pede uma alternativa, sem input do usuário
+    prompt = f"""
+    Você é um assistente de comunicação profissional. Sua tarefa é gerar uma versão alternativa para uma resposta de e-mail.
+
+    CONTEXTO:
+    1.  **E-mail Original Recebido:**
+        ---
+        {original_email}
+        ---
+
+    2.  **Primeira Versão da Resposta (Rascunho):**
+        ---
+        {draft_response}
+        ---
+
+    TAREFA:
+    Reescreva a "Primeira Versão da Resposta" de uma maneira diferente. Você pode, por exemplo, alterar o tom (deixar mais formal ou mais casual), mudar a estrutura da frase, ou usar palavras diferentes, mas mantendo o mesmo significado e objetivo.
+    Responda APENAS com o texto da nova versão da resposta, sem introduções ou comentários como "aqui está uma alternativa".
+    """
+    try:
+        refined_response_obj = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+        refined_text = refined_response_obj.text.strip()
+
+        print(">>> Resposta alternativa gerada com sucesso!")
+        return jsonify({"refined_response": refined_text})
+
+    except Exception as e:
+        print(f"Ocorreu um erro durante o refinamento: {e}")
+        return jsonify({"error": f"Ocorreu um erro interno ao refinar: {str(e)}"}), 500
 
 # --- 5. EXECUÇÃO DO SERVIDOR ---
 if __name__ == '__main__':
