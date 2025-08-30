@@ -1,8 +1,8 @@
 # --- SEÇÃO DE IMPORTAÇÕES ---
 import os
-import pandas as pd  # Importamos pandas para ler nosso arquivo CSV
+import pandas as pd
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import pipeline
@@ -15,7 +15,7 @@ if not GOOGLE_API_KEY:
     print("ERRO CRÍTICO: Variável de ambiente GOOGLE_API_KEY não encontrada.")
 else:
     try:
-        genai.configure(api_key=GOOGLE_API_KEY)
+        genarativeModel = genai.Client()
     except Exception as e:
         print(f"ERRO CRÍTICO: Chave de API do Gemini inválida. Erro: {e}")
 
@@ -61,24 +61,15 @@ def load_classifier_model():
         print(f"Ocorreu um erro ao carregar o modelo classificador: {e}")
         return None
 
-def load_generative_model():
-    """Configura o acesso ao Gemini."""
-    print("Configurando modelo generativo (Gemini)...")
-    if not GOOGLE_API_KEY: return None
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        print(">>> Modelo generativo pronto!")
-        return model
-    except Exception as e:
-        print(f"Erro ao configurar o modelo generativo: {e}")
-        return None
-
 classifier = load_classifier_model()
-generative_model = load_generative_model()
+generative_model = genarativeModel
+
 
 # --- 4. ENDPOINT DE ANÁLISE COM LÓGICA HÍBRIDA ---
 @app.route('/analyze', methods=['POST'])
 def analyze_email():
+    print(request.json)
+    exit()
     if not all([classifier, generative_model, known_intents]):
         return jsonify({"error": "Um ou mais componentes de IA não estão carregados."}), 500
 
@@ -115,8 +106,9 @@ def analyze_email():
 
             Responda APENAS com o nome da intenção da lista. Se não corresponder a nenhuma, responda APENAS com a palavra "Outro".
             """
-            intent_response = generative_model.generate_content(intent_prompt)
+            intent_response = genarativeModel.models.generate_content(model="gemini-1.5-flash",contents=intent_prompt)
             detected_intent = intent_response.text.strip()
+            print(detected_intent)
             print(f"Gemini detectou a intenção como: '{detected_intent}'")
 
             # --- ETAPA 3: O REDATOR (GEMINI) GERA A RESPOSTA CONTEXTUAL ---
@@ -133,9 +125,11 @@ def analyze_email():
                 """
 
         # Finalmente, geramos a resposta final com o prompt que foi escolhido.
-        final_response = generative_model.generate_content(prompt)
+        final_response = genarativeModel.models.generate_content(model="gemini-2.5-flash",contents=prompt)
+        
+        
         response_text = final_response.text
-
+        
         print(">>> Resposta final gerada com sucesso!")
         return jsonify({
             "category": category, # A categoria principal do BERT
