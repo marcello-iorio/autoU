@@ -1,0 +1,1 @@
+meu_classificador_de_emails/model.safetensors filter=lfs diff=lfs merge=lfs -text
