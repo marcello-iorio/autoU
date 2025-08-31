@@ -1,10 +1,10 @@
-# --- SEÇÃO DE IMPORTAÇÕES ---
 import os
 import pandas as pd
 from dotenv import load_dotenv
 from google import genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from google.api_core.exceptions import ResourceExhausted
 from transformers import pipeline
 import fitz
 
@@ -109,13 +109,16 @@ def analyze_email():
             if detected_intent != "Outro" and detected_intent in known_intents:
                 prompt = f"""
                 O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como '{detected_intent}'. Escreva uma resposta profissional e direta em português do Brasil que confirme o recebimento desta solicitação específica.
+                Responda APENAS com o texto da resposta,com introdução,mas sem comentários.
                 """
             else:
                 prompt = f"""
                 O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como 'Produtivo', mas não se encaixa em uma categoria conhecida. Escreva uma resposta profissional em português do Brasil, confirmando o recebimento e informando que o assunto será verificado pela equipe responsável.
+                Responda APENAS com o texto da resposta,com introdução,mas sem comentários.
                 """
 
         final_response = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+        
         response_text = final_response.text
         
         return jsonify({
@@ -123,9 +126,10 @@ def analyze_email():
             "response": response_text.strip(),
             "original_email": email_text
         })
-
+    except ResourceExhausted as e:
+        return print("Chegou aqui :)")
     except Exception as e:
-        print(f"Ocorreu um erro durante a análise: {e}")
+        
         return jsonify({"error": f"Ocorreu um erro interno: {str(e)}"}), 500
 
 # --- ENDPOINT DE REFINAMENTO (LÓGICA ALTERADA) ---
@@ -156,7 +160,7 @@ def refine_response():
 
     TAREFA:
     Reescreva a "Primeira Versão da Resposta" de uma maneira diferente. Você pode, por exemplo, alterar o tom (deixar mais formal ou mais casual), mudar a estrutura da frase, ou usar palavras diferentes, mas mantendo o mesmo significado e objetivo.
-    Responda APENAS com o texto da nova versão da resposta, sem introduções ou comentários como "aqui está uma alternativa".
+    Responda APENAS com o texto da nova versão da resposta,com introdução,mas sem comentários como "aqui está uma alternativa".
     """
     try:
         refined_response_obj = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)

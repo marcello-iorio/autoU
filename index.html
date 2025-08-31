@@ -1,57 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analisador de E-mails com IA</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #e5e7eb;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #1f2937;
-            animation: spin 1s ease infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .mail-window {
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
-        .drag-area-highlight {
-            background-color: #f5f5f4;
-            border-color: #1f2937;
-        }
-        [contenteditable][data-placeholder]:empty::before {
-            content: attr(data-placeholder);
-            color: #9ca3af;
-            pointer-events: none;
-            display: block;
-        }
-    </style>
+    <link href="src/output.css" rel="stylesheet">
 </head>
+
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-3xl mx-auto">
         <div id="app-card" class="mail-window bg-stone-50 rounded-lg overflow-hidden transition-all duration-300">
-            <div style="background-color: #e3d9ca;" class="px-4 py-2 flex items-center justify-between border-b border-stone-300">
+            <div style="background-color: #e3d9ca;"
+                class="px-4 py-2 flex items-center justify-between border-b border-stone-300">
                 <div class="flex items-center gap-2">
                     <span class="h-3 w-3 bg-red-500 rounded-full block"></span>
                     <span class="h-3 w-3 bg-yellow-400 rounded-full block"></span>
@@ -63,12 +28,20 @@
 
             <div id="input-view">
                 <div class="p-6 md:p-8">
-                     <div>
-                        <div id="drag-area" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:border-black transition-colors">
+                    <div>
+                        <div id="drag-area"
+                            class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:border-black transition-colors">
                             <div class="space-y-1 text-center">
-                                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke-width="1.5"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
                                 <div class="flex text-sm text-slate-600">
-                                    <p class="pl-1">Arraste um arquivo (.txt, .pdf) ou <span class="font-semibold text-black">clique para selecionar</span></p>
+                                    <p class="pl-1">Arraste um arquivo (.txt, .pdf) ou <span
+                                            class="font-semibold text-black">clique para selecionar</span></p>
                                 </div>
                                 <p id="file-name" class="text-xs text-slate-500"></p>
                             </div>
@@ -77,8 +50,11 @@
                     </div>
 
                     <div class="relative my-6">
-                        <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="w-full border-t border-slate-300"></div></div>
-                        <div class="relative flex justify-center"><span class="bg-stone-50 px-2 text-sm text-slate-500">OU</span></div>
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-slate-300"></div>
+                        </div>
+                        <div class="relative flex justify-center"><span
+                                class="bg-stone-50 px-2 text-sm text-slate-500">OU</span></div>
                     </div>
 
                     <div id="email-text" contenteditable="true" data-placeholder="Cole o conteúdo do e-mail aqui..."
@@ -86,16 +62,22 @@
                     </div>
 
                 </div>
-                
-                <div style="background-color: #e3d9ca;" class="px-6 py-4 border-t border-stone-300 flex justify-between items-center">
-                     <div class="flex items-center gap-3">
-                         <button id="process-btn" type="button" class="inline-flex items-center justify-center bg-black text-white px-5 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
+
+                <div style="background-color: #e3d9ca;"
+                    class="px-6 py-4 border-t border-stone-300 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <button id="process-btn" type="button"
+                            class="inline-flex items-center justify-center bg-black text-white px-5 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
                             Analisar e Sugerir
                         </button>
-                     </div>
-                     <button id="clear-btn" type="button" class="text-gray-800 hover:text-black" title="Limpar campos">
-                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                     </button>
+                    </div>
+                    <button id="clear-btn" type="button" class="text-gray-800 hover:text-black" title="Limpar campos">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -103,34 +85,55 @@
                 <div class="spinner"></div>
                 <p id="loading-text" class="mt-4 text-slate-600 font-medium">Analisando e-mail...</p>
             </div>
-            
-            <div id="error-view" class="hidden p-12 min-h-[300px] flex flex-col items-center justify-center text-center">
-                 <svg class="h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                 <p class="mt-4 font-semibold text-slate-800">Erro de Conexão</p>
-                 <p id="error-message" class="mt-2 text-sm text-slate-500">Não foi possível conectar ao backend.</p>
-                 <button id="try-again-btn" class="mt-6 bg-black text-white px-5 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800">Tentar Novamente</button>
+
+            <div id="error-view"
+                class="hidden p-12 min-h-[300px] flex flex-col items-center justify-center text-center">
+                <svg class="h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <p class="mt-4 font-semibold text-slate-800">Erro de Conexão</p>
+                <p id="error-message" class="mt-2 text-sm text-slate-500">Não foi possível conectar ao backend.</p>
+                <button id="try-again-btn"
+                    class="mt-6 bg-black text-white px-5 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800">Tentar
+                    Novamente</button>
             </div>
 
             <div id="result-view" class="hidden">
-                 <div class="p-6 md:p-8">
+                <div class="p-6 md:p-8">
                     <div class="text-center">
                         <p class="text-sm font-medium text-slate-500">Resultado da Análise</p>
-                        <div id="category-badge" class="mt-2 inline-flex items-center gap-x-2 rounded-full px-4 py-1 text-base font-bold"><span id="category-icon"></span><span id="category-text"></span></div>
+                        <div id="category-badge"
+                            class="mt-2 inline-flex items-center gap-x-2 rounded-full px-4 py-1 text-base font-bold">
+                            <span id="category-icon"></span><span id="category-text"></span></div>
                     </div>
                     <div class="mt-6">
-                        <label for="suggested-response" class="block text-sm font-medium text-slate-700">Resposta Automática Sugerida</label>
+                        <label for="suggested-response" class="block text-sm font-medium text-slate-700">Resposta
+                            Automática Sugerida</label>
                         <div class="relative mt-2">
-                            <textarea id="suggested-response" rows="7" class="block w-full rounded-md border-0 p-3 bg-slate-50 text-slate-800 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-black"></textarea>
-                            <button id="copy-btn" title="Copiar resposta" class="absolute top-2 right-2 p-2 bg-slate-200 rounded-md hover:bg-slate-300 transition-colors">
-                               <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>
-                                <span id="copy-feedback" class="absolute -top-8 right-0 text-xs bg-slate-800 text-white rounded px-2 py-1 opacity-0 transition-opacity">Copiado!</span>
+                            <textarea id="suggested-response" rows="15"
+                                class="block w-full rounded-md border-0 p-3 bg-slate-50 text-slate-800 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-black pr-14"></textarea>
+                            <button id="copy-btn" title="Copiar resposta"
+                                class="absolute top-3 right-3 p-2 bg-slate-200 rounded-md hover:bg-slate-300 transition-colors">
+                                <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6" />
+                                </svg>
+                                <span id="copy-feedback"
+                                    class="absolute -top-8 right-0 text-xs bg-slate-800 text-white rounded px-2 py-1 opacity-0 transition-opacity">Copiado!</span>
                             </button>
                         </div>
                     </div>
                 </div>
-                <div style="background-color: #e3d9ca;" class="px-6 py-4 border-t border-stone-300 flex flex-col sm:flex-row justify-center items-center gap-4">
-                    <button id="reset-btn" type="button" class="w-full sm:w-auto inline-flex items-center justify-center bg-black text-white px-6 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">Analisar Outro E-mail</button>
-                    <button id="refine-btn" type="button" class="w-full sm:w-auto inline-flex items-center justify-center bg-white text-black px-6 py-2 rounded-md text-sm font-semibold shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
+                <div style="background-color: #e3d9ca;"
+                    class="px-6 py-4 border-t border-stone-300 flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <button id="reset-btn" type="button"
+                        class="w-full sm:w-auto inline-flex items-center justify-center bg-black text-white px-6 py-2 rounded-md text-sm font-semibold shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">Analisar
+                        Outro E-mail</button>
+                    <button id="refine-btn" type="button"
+                        class="w-full sm:w-auto inline-flex items-center justify-center bg-white text-black px-6 py-2 rounded-md text-sm font-semibold shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
                         ✨ Refinar Resposta
                     </button>
                 </div>
@@ -139,159 +142,160 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const inputView = document.getElementById('input-view');
-        const loadingView = document.getElementById('loading-view');
-        const resultView = document.getElementById('result-view');
-        const errorView = document.getElementById('error-view');
-        const emailTextDiv = document.getElementById('email-text');
-        const fileNameDisplay = document.getElementById('file-name');
-        const processBtn = document.getElementById('process-btn');
-        const errorMessage = document.getElementById('error-message');
-        const categoryBadge = document.getElementById('category-badge');
-        const categoryIcon = document.getElementById('category-icon');
-        const categoryText = document.getElementById('category-text');
-        const suggestedResponse = document.getElementById('suggested-response');
-        const copyFeedback = document.getElementById('copy-feedback');
-        const dragArea = document.getElementById('drag-area');
-        const fileInput = document.getElementById('file-upload');
-        const refineBtn = document.getElementById('refine-btn');
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputView = document.getElementById('input-view');
+            const loadingView = document.getElementById('loading-view');
+            const resultView = document.getElementById('result-view');
+            const errorView = document.getElementById('error-view');
+            const emailTextDiv = document.getElementById('email-text');
+            const fileNameDisplay = document.getElementById('file-name');
+            const processBtn = document.getElementById('process-btn');
+            const errorMessage = document.getElementById('error-message');
+            const categoryBadge = document.getElementById('category-badge');
+            const categoryIcon = document.getElementById('category-icon');
+            const categoryText = document.getElementById('category-text');
+            const suggestedResponse = document.getElementById('suggested-response');
+            const copyFeedback = document.getElementById('copy-feedback');
+            const dragArea = document.getElementById('drag-area');
+            const fileInput = document.getElementById('file-upload');
+            const refineBtn = document.getElementById('refine-btn');
 
-        let uploadedFile = null;
-        let originalEmailForRefine = '';
+            let uploadedFile = null;
+            let originalEmailForRefine = '';
 
-        function preventDefaults(event) { event.preventDefault(); event.stopPropagation(); }
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dragArea.addEventListener(eventName, preventDefaults, false));
-        ['dragenter', 'dragover'].forEach(eventName => dragArea.addEventListener(eventName, () => dragArea.classList.add('drag-area-highlight'), false));
-        ['dragleave', 'drop'].forEach(eventName => dragArea.addEventListener(eventName, () => dragArea.classList.remove('drag-area-highlight'), false));
-        dragArea.addEventListener('click', () => fileInput.click());
-        dragArea.addEventListener('drop', (event) => handleFile(event.dataTransfer.files[0]), false);
-        fileInput.addEventListener('change', (event) => { if (event.target.files.length) handleFile(event.target.files[0]) });
+            function preventDefaults(event) { event.preventDefault(); event.stopPropagation(); }
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dragArea.addEventListener(eventName, preventDefaults, false));
+            ['dragenter', 'dragover'].forEach(eventName => dragArea.addEventListener(eventName, () => dragArea.classList.add('drag-area-highlight'), false));
+            ['dragleave', 'drop'].forEach(eventName => dragArea.addEventListener(eventName, () => dragArea.classList.remove('drag-area-highlight'), false));
+            dragArea.addEventListener('click', () => fileInput.click());
+            dragArea.addEventListener('drop', (event) => handleFile(event.dataTransfer.files[0]), false);
+            fileInput.addEventListener('change', (event) => { if (event.target.files.length) handleFile(event.target.files[0]) });
 
-        function handleFile(file) {
-            if (!file) return;
-            emailTextDiv.textContent = '';
-            uploadedFile = null;
-            if (file.type === 'text/plain') {
-                fileNameDisplay.textContent = file.name;
-                const reader = new FileReader();
-                reader.onload = (e) => { emailTextDiv.textContent = e.target.result; };
-                reader.readAsText(file);
-            } else if (file.type === 'application/pdf') {
-                fileNameDisplay.textContent = file.name;
-                uploadedFile = file;
-                emailTextDiv.innerHTML = `<div style="text-align: center; color: #555; padding-top: 50px;">Arquivo PDF '${file.name}' pronto para ser analisado.<br>Clique em "Analisar e Sugerir".</div>`;
-            } else {
-                fileNameDisplay.textContent = 'Arquivo inválido. Use .txt ou .pdf';
+            function handleFile(file) {
+                if (!file) return;
+                emailTextDiv.textContent = '';
+                uploadedFile = null;
+                if (file.type === 'text/plain') {
+                    fileNameDisplay.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => { emailTextDiv.textContent = e.target.result; };
+                    reader.readAsText(file);
+                } else if (file.type === 'application/pdf') {
+                    fileNameDisplay.textContent = file.name;
+                    uploadedFile = file;
+                    emailTextDiv.innerHTML = `<div style="text-align: center; color: #555; padding-top: 50px;">Arquivo PDF '${file.name}' pronto para ser analisado.<br>Clique em "Analisar e Sugerir".</div>`;
+                } else {
+                    fileNameDisplay.textContent = 'Arquivo inválido. Use .txt ou .pdf';
+                }
             }
-        }
-        
-        function switchView(viewToShow) {
-            [inputView, loadingView, resultView, errorView].forEach(view => view.classList.add('hidden'));
-            viewToShow.classList.remove('hidden');
-        }
 
-        // <<< FUNÇÃO CORRIGIDA AQUI >>>
-        function displayResults(result) {
-            originalEmailForRefine = result.original_email;
-            categoryText.textContent = result.category;
-            suggestedResponse.value = result.response;
-            
-            // --- LÓGICA DA COR DE FUNDO RESTAURADA ---
-            categoryBadge.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800');
-            if (result.category === 'Produtivo') {
-                categoryBadge.classList.add('bg-green-100', 'text-green-800');
-                categoryIcon.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
-            } else {
-                categoryBadge.classList.add('bg-yellow-100', 'text-yellow-800');
-                categoryIcon.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>`;
+            function switchView(viewToShow) {
+                [inputView, loadingView, resultView, errorView].forEach(view => view.classList.add('hidden'));
+                viewToShow.classList.remove('hidden');
             }
-            // --- FIM DA LÓGICA RESTAURADA ---
-            
-            switchView(resultView);
-            resultView.classList.add('fade-in');
-        }
 
-        async function processEmail() {
-            const textContent = emailTextDiv.textContent.trim();
-            if (!uploadedFile && !textContent) { return; }
-            switchView(loadingView);
-            const formData = new FormData();
-            let requestBody;
-            let headers = {};
-            if (uploadedFile) {
-                formData.append('file', uploadedFile);
-                requestBody = formData;
-            } else {
-                requestBody = JSON.stringify({ text: textContent });
-                headers['Content-Type'] = 'application/json';
+            // <<< FUNÇÃO CORRIGIDA AQUI >>>
+            function displayResults(result) {
+                originalEmailForRefine = result.original_email;
+                categoryText.textContent = result.category;
+                suggestedResponse.value = result.response;
+
+                // --- LÓGICA DA COR DE FUNDO RESTAURADA ---
+                categoryBadge.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800');
+                if (result.category === 'Produtivo') {
+                    categoryBadge.classList.add('bg-green-100', 'text-green-800');
+                    categoryIcon.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+                } else {
+                    categoryBadge.classList.add('bg-yellow-100', 'text-yellow-800');
+                    categoryIcon.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>`;
+                }
+                // --- FIM DA LÓGICA RESTAURADA ---
+
+                switchView(resultView);
+                resultView.classList.add('fade-in');
             }
-            try {
-                const response = await fetch('http://127.0.0.1:5000/analyze', { method: 'POST', headers: headers, body: requestBody });
-                const result = await response.json();
-                if (!response.ok) { throw new Error(result.error || `HTTP error! status: ${response.status}`); }
-                displayResults(result);
-            } catch (error) {
-                errorMessage.textContent = error.message;
-                switchView(errorView);
+
+            async function processEmail() {
+                const textContent = emailTextDiv.textContent.trim();
+                if (!uploadedFile && !textContent) { return; }
+                switchView(loadingView);
+                const formData = new FormData();
+                let requestBody;
+                let headers = {};
+                if (uploadedFile) {
+                    formData.append('file', uploadedFile);
+                    requestBody = formData;
+                } else {
+                    requestBody = JSON.stringify({ text: textContent });
+                    headers['Content-Type'] = 'application/json';
+                }
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/analyze', { method: 'POST', headers: headers, body: requestBody });
+                    const result = await response.json();
+                    if (!response.ok) { throw new Error(result.error || `HTTP error! status: ${response.status}`); }
+                    displayResults(result);
+                } catch (error) {
+                    errorMessage.textContent = error.message;
+                    switchView(errorView);
+                }
             }
-        }
-        
-        async function refineResponse() {
-            const draftResponse = suggestedResponse.value;
-            const originalButtonText = refineBtn.textContent;
-            refineBtn.innerHTML = `<div class="spinner !h-5 !w-5 !border-2 !border-l-black"></div><span class="ml-2">Gerando...</span>`;
-            refineBtn.disabled = true;
 
-            try {
-                const response = await fetch('http://127.0.0.1:5000/refine', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        original_email: originalEmailForRefine,
-                        draft_response: draftResponse
-                    })
-                });
-                
-                const result = await response.json();
-                if (!response.ok) { throw new Error(result.error || `HTTP error! status: ${response.status}`); }
-                
-                suggestedResponse.value = result.refined_response;
+            async function refineResponse() {
+                const draftResponse = suggestedResponse.value;
+                const originalButtonText = refineBtn.textContent;
+                refineBtn.innerHTML = `<div class="spinner !h-5 !w-5 !border-2 !border-l-black"></div><span class="ml-2">Gerando...</span>`;
+                refineBtn.disabled = true;
 
-            } catch(error) {
-                 alert(`Erro ao gerar alternativa: ${error.message}`);
-            } finally {
-                refineBtn.innerHTML = `✨ ${originalButtonText.trim()}`;
-                refineBtn.disabled = false;
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/refine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            original_email: originalEmailForRefine,
+                            draft_response: draftResponse
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) { throw new Error(result.error || `HTTP error! status: ${response.status}`); }
+
+                    suggestedResponse.value = result.refined_response;
+
+                } catch (error) {
+                    alert(`Erro ao gerar alternativa: ${error.message}`);
+                } finally {
+                    refineBtn.innerHTML = `${originalButtonText.trim()}`;
+                    refineBtn.disabled = false;
+                }
             }
-        }
-        
-        function clearInputs() {
-            emailTextDiv.innerHTML = '';
-            fileInput.value = '';
-            fileNameDisplay.textContent = '';
-            uploadedFile = null;
-        }
 
-        function copyResponse() {
-            navigator.clipboard.writeText(suggestedResponse.value).then(() => {
-                copyFeedback.classList.remove('opacity-0');
-                setTimeout(() => copyFeedback.classList.add('opacity-0'), 2000);
-            }).catch(err => console.error('Falha ao copiar texto: ', err));
-        }
-        
-        const clearBtn = document.getElementById('clear-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const copyBtn = document.getElementById('copy-btn');
-        const tryAgainBtn = document.getElementById('try-again-btn');
-        
-        processBtn.addEventListener('click', processEmail);
-        tryAgainBtn.addEventListener('click', processEmail);
-        clearBtn.addEventListener('click', clearInputs);
-        resetBtn.addEventListener('click', () => { clearInputs(); switchView(inputView); });
-        copyBtn.addEventListener('click', copyResponse);
-        refineBtn.addEventListener('click', refineResponse);
-    });
+            function clearInputs() {
+                emailTextDiv.innerHTML = '';
+                fileInput.value = '';
+                fileNameDisplay.textContent = '';
+                uploadedFile = null;
+            }
+
+            function copyResponse() {
+                navigator.clipboard.writeText(suggestedResponse.value).then(() => {
+                    copyFeedback.classList.remove('opacity-0');
+                    setTimeout(() => copyFeedback.classList.add('opacity-0'), 2000);
+                }).catch(err => console.error('Falha ao copiar texto: ', err));
+            }
+
+            const clearBtn = document.getElementById('clear-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const tryAgainBtn = document.getElementById('try-again-btn');
+
+            processBtn.addEventListener('click', processEmail);
+            tryAgainBtn.addEventListener('click', processEmail);
+            clearBtn.addEventListener('click', clearInputs);
+            resetBtn.addEventListener('click', () => { clearInputs(); switchView(inputView); });
+            copyBtn.addEventListener('click', copyResponse);
+            refineBtn.addEventListener('click', refineResponse);
+        });
     </script>
 </body>
+
 </html>
