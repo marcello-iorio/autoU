@@ -25,6 +25,9 @@ CORS(app)
 
 MODEL_PATH = "./meu_classificador_de_emails"
 
+# Lista de modelos para fallback
+MODEL_FALLBACKS = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-2.5-pro"]
+
 # --- 2. PREPARAÇÃO DA LISTA DE INTENÇÕES ---
 def load_known_intents():
     try:
@@ -51,6 +54,28 @@ def load_classifier_model():
 
 classifier = load_classifier_model()
 generative_model = genarativeModel
+
+# --- Função auxiliar com fallback ---
+def generate_with_fallback(prompt, model_list=MODEL_FALLBACKS):
+    """
+    Tenta gerar texto com uma lista de modelos em cascata.
+    Se um der ResourceExhausted (código 429), tenta o próximo.
+    """
+    last_error = None
+    for model in model_list:
+        try:
+            response = genarativeModel.models.generate_content(
+                model=model,
+                contents=prompt
+            )
+            return response.text.strip()
+        except ResourceExhausted as e:
+            print(f"[AVISO] Modelo {model} estourou a cota (429). Tentando próximo...")
+            last_error = e
+        except Exception as e:
+            print(f"[ERRO] Modelo {model} falhou: {e}")
+            last_error = e
+    raise last_error
 
 # --- 4. ENDPOINT DE ANÁLISE ---
 @app.route('/analyze', methods=['POST'])
@@ -93,7 +118,7 @@ def analyze_email():
         category = "Produtivo" if label_id == 'LABEL_1' else "Improdutivo"
 
         if category == "Improdutivo":
-            prompt = f"O e-mail a seguir foi classificado como improdutivo:\n\n---\n{email_text}\n---\n\nGere uma resposta curta e cordial de agradecimento em português do Brasil."
+            prompt = f"O e-mail a seguir foi classificado como improdutivo:\n\n---\n{email_text}\n---\n\nGere uma resposta curta e cordial de agradecimento em português do Brasil,com introdução,mas sem comentários."
         else:
             intent_prompt = f"""
             Analise o e-mail abaixo e diga a qual das seguintes intenções de negócio ele corresponde melhor:
@@ -103,47 +128,39 @@ def analyze_email():
             --- FIM DO E-MAIL ---
             Responda APENAS com o nome da intenção da lista. Se não corresponder a nenhuma, responda APENAS com a palavra "Outro".
             """
-            intent_response = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=intent_prompt)
-            detected_intent = intent_response.text.strip()
+            detected_intent = generate_with_fallback(intent_prompt)
 
             if detected_intent != "Outro" and detected_intent in known_intents:
                 prompt = f"""
                 O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como '{detected_intent}'. Escreva uma resposta profissional e direta em português do Brasil que confirme o recebimento desta solicitação específica.
-                Responda APENAS com o texto da resposta,com introdução,mas sem comentários.
+                Responda APENAS com o texto da resposta, com introdução, mas sem comentários.
                 """
             else:
                 prompt = f"""
                 O e-mail recebido foi: --- {email_text} ---. A intenção foi classificada como 'Produtivo', mas não se encaixa em uma categoria conhecida. Escreva uma resposta profissional em português do Brasil, confirmando o recebimento e informando que o assunto será verificado pela equipe responsável.
-                Responda APENAS com o texto da resposta,com introdução,mas sem comentários.
+                Responda APENAS com o texto da resposta, com introdução, mas sem comentários.
                 """
 
-        final_response = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)
-        
-        response_text = final_response.text
+        response_text = generate_with_fallback(prompt)
         
         return jsonify({
             "category": category,
-            "response": response_text.strip(),
+            "response": response_text,
             "original_email": email_text
         })
-    except ResourceExhausted as e:
-        return print("Chegou aqui :)")
     except Exception as e:
-        
         return jsonify({"error": f"Ocorreu um erro interno: {str(e)}"}), 500
 
-# --- ENDPOINT DE REFINAMENTO (LÓGICA ALTERADA) ---
+# --- ENDPOINT DE REFINAMENTO ---
 @app.route('/refine', methods=['POST'])
 def refine_response():
     data = request.json
-    # Agora só precisamos do e-mail original e da resposta atual
     if not data or not all(k in data for k in ['original_email', 'draft_response']):
         return jsonify({"error": "Dados insuficientes para refinar a resposta."}), 400
 
     original_email = data['original_email']
     draft_response = data['draft_response']
 
-    # Este novo prompt pede uma alternativa, sem input do usuário
     prompt = f"""
     Você é um assistente de comunicação profissional. Sua tarefa é gerar uma versão alternativa para uma resposta de e-mail.
 
@@ -160,15 +177,12 @@ def refine_response():
 
     TAREFA:
     Reescreva a "Primeira Versão da Resposta" de uma maneira diferente. Você pode, por exemplo, alterar o tom (deixar mais formal ou mais casual), mudar a estrutura da frase, ou usar palavras diferentes, mas mantendo o mesmo significado e objetivo.
-    Responda APENAS com o texto da nova versão da resposta,com introdução,mas sem comentários como "aqui está uma alternativa".
+    Responda APENAS com o texto da nova versão da resposta, com introdução, mas sem comentários como "aqui está uma alternativa".
     """
     try:
-        refined_response_obj = genarativeModel.models.generate_content(model="gemini-1.5-flash", contents=prompt)
-        refined_text = refined_response_obj.text.strip()
-
+        refined_text = generate_with_fallback(prompt)
         print(">>> Resposta alternativa gerada com sucesso!")
         return jsonify({"refined_response": refined_text})
-
     except Exception as e:
         print(f"Ocorreu um erro durante o refinamento: {e}")
         return jsonify({"error": f"Ocorreu um erro interno ao refinar: {str(e)}"}), 500
