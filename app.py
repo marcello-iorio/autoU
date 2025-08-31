@@ -26,7 +26,7 @@ CORS(app)
 MODEL_PATH = "./meu_classificador_de_emails"
 
 # Lista de modelos para fallback
-MODEL_FALLBACKS = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-2.5-pro"]
+MODEL_FALLBACKS = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"]
 
 # --- 2. PREPARAÇÃO DA LISTA DE INTENÇÕES ---
 def load_known_intents():
