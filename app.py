@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 from google import genai
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google.api_core.exceptions import ResourceExhausted
 from transformers import pipeline
@@ -20,7 +20,7 @@ else:
     except Exception as e:
         print(f"ERRO CRÍTICO: Chave de API do Gemini inválida. Erro: {e}")
 
-app = Flask(__name__, static_folder='../', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
 MODEL_PATH = "./meu_classificador_de_emails"
@@ -77,9 +77,14 @@ def generate_with_fallback(prompt, model_list=MODEL_FALLBACKS):
             last_error = e
     raise last_error
 
+# As rotas para servir os arquivos estáticos
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return send_from_directory('.', 'index.html')
+
+@app.route('/src/<path:filename>')
+def src_files(filename):
+    return send_from_directory('src', filename)
 
 # --- 4. ENDPOINT DE ANÁLISE ---
 @app.route('/analyze', methods=['POST'])
