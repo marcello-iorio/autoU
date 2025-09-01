@@ -9,7 +9,7 @@ WORKDIR /app
 # Etapa 3: Dependências do Sistema
 # Instala bibliotecas do sistema operacional que o PyMuPDF (para ler PDFs) pode precisar.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Etapa 4: Dependências do Python
