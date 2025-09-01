@@ -20,7 +20,7 @@ else:
     except Exception as e:
         print(f"ERRO CRÍTICO: Chave de API do Gemini inválida. Erro: {e}")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../', static_url_path='')
 CORS(app)
 
 MODEL_PATH = "./meu_classificador_de_emails"
@@ -76,6 +76,10 @@ def generate_with_fallback(prompt, model_list=MODEL_FALLBACKS):
             print(f"[ERRO] Modelo {model} falhou: {e}")
             last_error = e
     raise last_error
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 # --- 4. ENDPOINT DE ANÁLISE ---
 @app.route('/analyze', methods=['POST'])
